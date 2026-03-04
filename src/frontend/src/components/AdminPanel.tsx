@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -15,11 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { type QuoteRequest, QuoteStatus } from "../backend.d";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useClaimAdmin,
   useGetAllQuotes,
   useIsAdmin,
   useUpdateQuoteStatus,
@@ -46,6 +49,83 @@ function formatDate(nanos: bigint): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function ClaimAdminForm() {
+  const [token, setToken] = useState("");
+  const { mutate: claimAdmin, isPending, isError, isSuccess } = useClaimAdmin();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token.trim()) return;
+    claimAdmin(token.trim());
+  };
+
+  if (isSuccess) {
+    return (
+      <div
+        className="border border-green-200 bg-green-50 p-10 text-center space-y-3"
+        data-ocid="admin.success_state"
+      >
+        <ShieldCheck className="w-10 h-10 text-green-600 mx-auto" />
+        <h3 className="font-display text-2xl text-navy">
+          Admin Access Granted
+        </h3>
+        <p className="font-body text-muted-foreground text-sm">
+          Refreshing your session...
+        </p>
+        <Loader2 className="w-5 h-5 text-gold animate-spin mx-auto" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-border p-10 space-y-6 max-w-md mx-auto">
+      <div className="text-center space-y-2">
+        <ShieldAlert className="w-10 h-10 text-gold mx-auto" />
+        <h3 className="font-display text-2xl text-navy">Claim Admin Access</h3>
+        <p className="font-body text-muted-foreground text-sm">
+          Enter the admin secret token to gain access to the dashboard.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1">
+          <Input
+            type="password"
+            placeholder="Enter admin token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            className="font-body rounded-none border-border"
+            data-ocid="admin.input"
+            disabled={isPending}
+          />
+          {isError && (
+            <p
+              className="font-body text-xs text-destructive"
+              data-ocid="admin.error_state"
+            >
+              Invalid token. Please try again.
+            </p>
+          )}
+        </div>
+        <Button
+          type="submit"
+          disabled={isPending || !token.trim()}
+          className="w-full bg-navy hover:bg-navy/90 text-white font-body font-semibold rounded-none tracking-wider uppercase"
+          data-ocid="admin.submit_button"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            "Claim Admin Access"
+          )}
+        </Button>
+      </form>
+    </div>
+  );
 }
 
 export default function AdminPanel() {
@@ -80,6 +160,7 @@ export default function AdminPanel() {
               onClick={login}
               disabled={isLoggingIn}
               className="bg-navy hover:bg-navy-mid text-white font-body font-semibold rounded-none tracking-wider uppercase mt-4"
+              data-ocid="admin.primary_button"
             >
               {isLoggingIn ? (
                 <>
@@ -111,7 +192,7 @@ export default function AdminPanel() {
     );
   }
 
-  // Not admin
+  // Not admin -- show claim form
   if (!isAdmin) {
     return (
       <section
@@ -119,16 +200,8 @@ export default function AdminPanel() {
         className="py-20 bg-background"
         data-ocid="admin.section"
       >
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="border border-destructive/30 bg-destructive/5 p-10">
-            <ShieldAlert className="w-10 h-10 text-destructive mx-auto mb-4" />
-            <h3 className="font-display text-2xl text-navy mb-2">
-              Access Denied
-            </h3>
-            <p className="font-body text-muted-foreground text-sm">
-              Your account does not have admin privileges.
-            </p>
-          </div>
+        <div className="max-w-4xl mx-auto px-6">
+          <ClaimAdminForm />
         </div>
       </section>
     );

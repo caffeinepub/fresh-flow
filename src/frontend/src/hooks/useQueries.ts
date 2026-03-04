@@ -68,3 +68,18 @@ export function useUpdateQuoteStatus() {
     },
   });
 }
+
+export function useClaimAdmin() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (token: string) => {
+      if (!actor) throw new Error("Not connected");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (actor as any)._initializeAccessControlWithSecret(token);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["isAdmin"] });
+    },
+  });
+}
