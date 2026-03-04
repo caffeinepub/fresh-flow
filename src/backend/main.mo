@@ -2,11 +2,13 @@ import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
-import Array "mo:core/Array";
 import Nat "mo:core/Nat";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 
+// Apply migration during upgrade
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -61,8 +63,8 @@ actor {
     #finalized;
   };
 
-  var quotes : [QuoteRequest] = [];
-  var nextId : Nat = 0;
+  let quotes = Map.empty<Nat, QuoteRequest>();
+  var nextId = 0;
 
   // Public function - anyone can submit a quote request (including guests)
   public shared ({ caller }) func submitQuoteRequest(
@@ -89,7 +91,7 @@ actor {
       status = #new;
     };
 
-    quotes := quotes.concat([newQuote]);
+    quotes.add(nextId, newQuote);
     nextId += 1;
     newQuote.id;
   };
@@ -99,7 +101,7 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can view all quotes");
     };
-    quotes;
+    quotes.values().toArray();
   };
 
   // Admin-only function - update quote status
@@ -108,29 +110,13 @@ actor {
       Runtime.trap("Unauthorized: Only admins can update quote status");
     };
 
-    var found = false;
-    quotes := quotes.map<QuoteRequest, QuoteRequest>(
-      func(quote : QuoteRequest) : QuoteRequest {
-        if (quote.id == quoteId) {
-          found := true;
-          {
-            id = quote.id;
-            name = quote.name;
-            businessName = quote.businessName;
-            businessType = quote.businessType;
-            city = quote.city;
-            monthlyQuantity = quote.monthlyQuantity;
-            brandingNotes = quote.brandingNotes;
-            email = quote.email;
-            phone = quote.phone;
-            submissionTime = quote.submissionTime;
-            status = newStatus;
-          };
-        } else {
-          quote;
-        };
-      },
-    );
-    found;
+    switch (quotes.get(quoteId)) {
+      case (null) { false };
+      case (?existingQuote) {
+        let updatedQuote = { existingQuote with status = newStatus };
+        quotes.add(quoteId, updatedQuote);
+        true;
+      };
+    };
   };
 };

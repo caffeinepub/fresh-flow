@@ -8,10 +8,16 @@ export function useIsAdmin() {
     queryKey: ["isAdmin"],
     queryFn: async () => {
       if (!actor) return false;
-      return actor.isCallerAdmin();
+      try {
+        return await actor.isCallerAdmin();
+      } catch {
+        // User not registered in the system yet — treat as not admin
+        return false;
+      }
     },
     enabled: !!actor && !isFetching,
     staleTime: 60_000,
+    retry: false,
   });
 }
 

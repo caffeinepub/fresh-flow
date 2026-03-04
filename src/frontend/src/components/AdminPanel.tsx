@@ -51,7 +51,7 @@ function formatDate(nanos: bigint): string {
   });
 }
 
-function ClaimAdminForm() {
+function SetupAdminForm() {
   const [token, setToken] = useState("");
   const { mutate: claimAdmin, isPending, isError, isSuccess } = useClaimAdmin();
 
@@ -63,68 +63,129 @@ function ClaimAdminForm() {
 
   if (isSuccess) {
     return (
-      <div
-        className="border border-green-200 bg-green-50 p-10 text-center space-y-3"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="border border-gold/40 bg-gold/5 p-12 text-center space-y-4 max-w-lg mx-auto"
         data-ocid="admin.success_state"
       >
-        <ShieldCheck className="w-10 h-10 text-green-600 mx-auto" />
-        <h3 className="font-display text-2xl text-navy">
-          Admin Access Granted
+        <div className="w-16 h-16 border border-gold/50 flex items-center justify-center mx-auto">
+          <ShieldCheck className="w-8 h-8 text-gold" />
+        </div>
+        <h3 className="font-display text-2xl text-navy font-light">
+          Admin Access Activated
         </h3>
         <p className="font-body text-muted-foreground text-sm">
-          Refreshing your session...
+          You're all set. Loading your dashboard now...
         </p>
         <Loader2 className="w-5 h-5 text-gold animate-spin mx-auto" />
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="border border-border p-10 space-y-6 max-w-md mx-auto">
-      <div className="text-center space-y-2">
-        <ShieldAlert className="w-10 h-10 text-gold mx-auto" />
-        <h3 className="font-display text-2xl text-navy">Claim Admin Access</h3>
-        <p className="font-body text-muted-foreground text-sm">
-          Enter the admin secret token to gain access to the dashboard.
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="max-w-xl mx-auto"
+    >
+      {/* Header */}
+      <div className="text-center mb-8 space-y-3">
+        <div className="w-14 h-14 border border-gold/50 flex items-center justify-center mx-auto mb-4">
+          <ShieldAlert className="w-7 h-7 text-gold" />
+        </div>
+        <h3 className="font-display text-3xl text-navy font-light tracking-wide">
+          First-Time Admin Setup
+        </h3>
+        <p className="font-body text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
+          This is a one-time setup. Enter your Admin Secret Key to activate full
+          dashboard access.
         </p>
       </div>
+
+      {/* Step-by-step instructions */}
+      <div className="border border-border p-6 mb-6 space-y-4 bg-muted/20">
+        <p className="font-body text-xs tracking-[0.2em] uppercase text-gold font-medium">
+          Where to find your key
+        </p>
+        <ol className="space-y-3">
+          {(
+            [
+              { label: "Open caffeine.ai in your browser", highlight: false },
+              { label: "Select your Fresh Flow project", highlight: false },
+              { label: "Go to Settings", highlight: false },
+              { label: "Copy the value of ", highlight: true },
+            ] as { label: string; highlight: boolean }[]
+          ).map((step, i) => (
+            <li key={step.label} className="flex items-start gap-3">
+              <span className="flex-shrink-0 w-6 h-6 border border-gold/60 text-gold font-body text-xs font-semibold flex items-center justify-center">
+                {i + 1}
+              </span>
+              <span className="font-body text-sm text-foreground leading-relaxed pt-0.5">
+                {step.label}
+                {step.highlight && (
+                  <code className="ml-1 px-1.5 py-0.5 bg-navy/10 text-navy font-mono text-xs rounded-sm">
+                    CAFFEINE_ADMIN_TOKEN
+                  </code>
+                )}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1">
+        <div className="space-y-2">
+          <label
+            htmlFor="admin-secret-key"
+            className="font-body text-xs tracking-[0.15em] uppercase text-muted-foreground font-medium"
+          >
+            Admin Secret Key
+          </label>
           <Input
+            id="admin-secret-key"
             type="password"
-            placeholder="Enter admin token"
+            placeholder="Paste your CAFFEINE_ADMIN_TOKEN here"
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            className="font-body rounded-none border-border"
+            className="font-body rounded-none border-border focus:border-gold focus:ring-gold/20 h-12 text-sm"
             data-ocid="admin.input"
             disabled={isPending}
           />
           {isError && (
             <p
-              className="font-body text-xs text-destructive"
+              className="font-body text-xs text-destructive flex items-center gap-1.5"
               data-ocid="admin.error_state"
             >
-              Invalid token. Please try again.
+              <span className="inline-block w-1 h-1 rounded-full bg-destructive" />
+              Incorrect key. Please check your Caffeine project settings.
             </p>
           )}
         </div>
+
         <Button
           type="submit"
           disabled={isPending || !token.trim()}
-          className="w-full bg-navy hover:bg-navy/90 text-white font-body font-semibold rounded-none tracking-wider uppercase"
+          className="w-full bg-navy hover:bg-navy/90 text-white font-body font-semibold rounded-none tracking-[0.15em] uppercase h-12"
           data-ocid="admin.submit_button"
         >
           {isPending ? (
             <>
               <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-              Verifying...
+              Verifying Key...
             </>
           ) : (
-            "Claim Admin Access"
+            "Activate Admin Access"
           )}
         </Button>
+
+        <p className="font-body text-xs text-muted-foreground text-center">
+          This is a one-time setup. You won't need the key again after this.
+        </p>
       </form>
-    </div>
+    </motion.div>
   );
 }
 
@@ -192,7 +253,7 @@ export default function AdminPanel() {
     );
   }
 
-  // Not admin -- show claim form
+  // Not admin -- show setup form
   if (!isAdmin) {
     return (
       <section
@@ -201,7 +262,7 @@ export default function AdminPanel() {
         data-ocid="admin.section"
       >
         <div className="max-w-4xl mx-auto px-6">
-          <ClaimAdminForm />
+          <SetupAdminForm />
         </div>
       </section>
     );
